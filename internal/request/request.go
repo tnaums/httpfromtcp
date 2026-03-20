@@ -1,15 +1,15 @@
 package request
 
 import (
-	"errors"
+	"bytes"
 	"fmt"
 	"io"
 	"strings"
-	"unicode"
 )
 
 type Request struct {
 	RequestLine RequestLine
+	state requestState
 }
 
 type RequestLine struct {
@@ -18,51 +18,75 @@ type RequestLine struct {
 	Method        string
 }
 
+type requestState int
+
+const (
+	requestStateInitialized requestState = iota
+	requestStateDone
+)
+
+const crlf = "\r\n"
+
 func RequestFromReader(reader io.Reader) (*Request, error) {
-	b, err := io.ReadAll(reader)
+	rawBytes, err := io.ReadAll(reader)
 	if err != nil {
-		return &Request{}, err
+		return nil, err
 	}
-
-	rp, err := parseRequestLine(string(b))
+	requestLine, err := parseRequestLine(rawBytes)
 	if err != nil {
-		return &Request{}, err
-	}
-	fmt.Printf("HttpVersion: %s\n\n", rp.RequestLine.HttpVersion)
-	fmt.Printf("RequestTarget: %s\n\n", rp.RequestLine.RequestTarget)
-	fmt.Printf("Method: %s\n\n", rp.RequestLine.Method)
-	return rp, nil
-}
-
-func parseRequestLine(request string) (*Request, error) {
-	lines := strings.Split(request, "\r\n")
-	for idx, line := range lines {
-		fmt.Printf("%d: %s\n", idx, line)
-	}
-	parts := strings.Split(lines[0], " ")
-	for _, part := range parts {
-		part = strings.TrimSpace(part)
-	}
-	if len(parts) != 3 {
-		err := errors.New("Request Line has incorrect number of parts.")
-		return &Request{}, err
-	}
-	Method := parts[0]
-	for _, r := range Method {
-		if !unicode.IsUpper(r) && unicode.IsLetter(r) {
-			err := errors.New("Method must be all uppercase letters.")
-			return &Request{}, err
-		}
-	}
-	RequestTarget := parts[1]
-	HttpVersion := parts[2]
-	HttpVersion = strings.TrimPrefix(HttpVersion, "HTTP/")
-	assembled := RequestLine{
-		HttpVersion:   HttpVersion,
-		RequestTarget: RequestTarget,
-		Method:        Method,
+		return nil, err
 	}
 	return &Request{
-		RequestLine: assembled,
+		RequestLine: *requestLine,
+	}, nil
+}
+
+func parseRequestLine(data []byte) (*RequestLine, int, error) {
+	idx := bytes.Index(data, []byte(crlf))
+	if idx == -1 {
+		return nil, 0, nil
+	}
+	
+	requestLineText := string(data[:idx])
+	requestLine, err := requestLineFromString(requestLineText)
+	if err != nil {
+		return nil, 0, err
+	}
+	return requestLine, idx + 2, nil
+}
+
+func requestLineFromString(str string) (*RequestLine, error) {
+	parts := strings.Split(str, " ")
+	if len(parts) != 3 {
+		return nil, fmt.Errorf("poorly formatted request-line: %s", str)
+	}
+
+	method := parts[0]
+	for _, c := range method {
+		if c < 'A' || c > 'Z' {
+			return nil, fmt.Errorf("invalid method: %s", method)
+		}
+	}
+
+	requestTarget := parts[1]
+
+	versionParts := strings.Split(parts[2], "/")
+	if len(versionParts) != 2 {
+		return nil, fmt.Errorf("malformed start-line: %s", str)
+	}
+
+	httpPart := versionParts[0]
+	if httpPart != "HTTP" {
+		return nil, fmt.Errorf("unrecognized HTTP-version: %s", httpPart)
+	}
+	version := versionParts[1]
+	if version != "1.1" {
+		return nil, fmt.Errorf("unrecognized HTTP-version: %s", version)
+	}
+
+	return &RequestLine{
+		Method:        method,
+		RequestTarget: requestTarget,
+		HttpVersion:   versionParts[1],
 	}, nil
 }
