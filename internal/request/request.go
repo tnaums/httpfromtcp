@@ -14,6 +14,16 @@ type Request struct {
 	state requestState
 }
 
+func (r Request) String() string {
+	var complete string
+	complete += fmt.Sprintln("Request line:")
+	complete += fmt.Sprintf("- Method: %s\n", r.RequestLine.Method)
+	complete += fmt.Sprintf("- Target: %s\n", r.RequestLine.RequestTarget)
+	complete += fmt.Sprintf("- Version: %s\n", r.RequestLine.HttpVersion)
+	return complete
+	
+}
+
 type RequestLine struct {
 	HttpVersion   string
 	RequestTarget string
@@ -53,7 +63,7 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 		}
 		readToIndex += numBytesRead
 
-		fmt.Printf("read: %s\n", buf[:readToIndex])
+		//		fmt.Printf("read: %s\n", buf[:readToIndex])
 		numBytesParsed, err := req.parse(buf[:readToIndex])
 		if err != nil {
 			return nil, err
@@ -72,7 +82,7 @@ func parseRequestLine(data []byte) (*RequestLine, int, error) {
 		return nil, 0, nil
 	}
 	requestLineText := string(data[:idx])
-	fmt.Printf("requestLineText: %s\n", requestLineText)
+	//	fmt.Printf("requestLineText: %s\n", requestLineText)
 	requestLine, err := requestLineFromString(requestLineText)
 	if err != nil {
 		return nil, 0, err
