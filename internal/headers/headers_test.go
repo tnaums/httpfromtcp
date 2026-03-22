@@ -14,10 +14,27 @@ func TestParse(t *testing.T) {
 	n, done, err := headers.Parse(data)
 	require.NoError(t, err)
 	require.NotNil(t, headers)
-	assert.Equal(t, "localhost:42069", headers["Host"])
+	assert.Equal(t, "localhost:42069", headers["host"])
 	assert.Equal(t, 23, n)
 	assert.False(t, done)
 
+	// Test: Valid single header begining with whitespace
+	headers = NewHeaders()
+	data = []byte("  Host: localhost:42069\r\n\r\n")
+	n, done, err = headers.Parse(data)
+	require.NoError(t, err)
+	require.NotNil(t, headers)
+	assert.Equal(t, "localhost:42069", headers["host"])
+	assert.Equal(t, 25, n)
+	assert.False(t, done)
+
+	// Test: Invalid character in header
+	headers = NewHeaders()
+	data = []byte("H@st: localhost:42069\r\n\r\n")
+	n, done, err = headers.Parse(data)
+	require.Error(t, err)
+
+	
 	// Test: Invalid spacing header
 	headers = NewHeaders()
 	data = []byte("       Host : localhost:42069       \r\n\r\n")
@@ -39,7 +56,7 @@ func TestParse(t *testing.T) {
 	data = []byte("\r\n{tag: somevalue}")
 	n, done, err = headers.Parse(data)
 	require.NoError(t, err)
-	assert.Equal(t, 0, n)
+	assert.Equal(t, 2, n)
 	assert.True(t, done)
 
 	// Test: two valid headers
@@ -55,7 +72,7 @@ func TestParse(t *testing.T) {
 	assert.False(t, done)
 	n, done, err = headers.Parse(data[47:])
 	require.NoError(t, err)
-	assert.Equal(t, 0, n)
+	assert.Equal(t, 2, n)
 	assert.True(t, done)
 	
 }

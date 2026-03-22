@@ -63,7 +63,7 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 		}
 		readToIndex += numBytesRead
 
-		//		fmt.Printf("read: %s\n", buf[:readToIndex])
+		//fmt.Printf("read: %s\n", buf[:readToIndex])
 		numBytesParsed, err := req.parse(buf[:readToIndex])
 		if err != nil {
 			return nil, err
