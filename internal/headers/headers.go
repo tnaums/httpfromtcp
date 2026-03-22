@@ -44,8 +44,15 @@ func (h Headers) Parse(data []byte) (n int, done bool, err error) {
 			return 0, false, fmt.Errorf("invalid character in field name: %s", string(r))
 		}
 	}
-	value := string(bytes.TrimSpace(data[idx + 1:]))
+	
+	value := string(bytes.TrimSpace(data[idx + 1:n]))
+
+	val, ok := h[keyString]
+	if ok {
+		value = val + "," + value
+	}
 	h[keyString] = value
+	fmt.Printf("Current value for %s is: %s\n", keyString, value)
 
 	return n, false, nil
 }

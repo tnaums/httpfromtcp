@@ -66,6 +66,7 @@ func TestParse(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 23, n)
 	assert.False(t, done)
+	assert.Equal(t, "localhost:42069", headers["host"])	
 	n, done, err = headers.Parse(data[23:])
 	require.NoError(t, err)
 	assert.Equal(t, 24, n)
@@ -74,5 +75,21 @@ func TestParse(t *testing.T) {
 	require.NoError(t, err)
 	assert.Equal(t, 2, n)
 	assert.True(t, done)
-	
+
+	// Test: Multiple Set-Person lines
+	headers = NewHeaders()
+	data = []byte("Host: localhost:42069\r\nSet-Person: lane-loves-go\r\nSet-Person: prime-loves-zig\r\nSet-Person: tj-loves-ocaml\r\n\r\n")
+	n, done, err = headers.Parse(data)
+	require.NoError(t, err)
+	assert.Equal(t, 23, n)
+	assert.False(t, done)
+	assert.Equal(t, "localhost:42069", headers["host"])
+	n, done, err = headers.Parse(data[23:])
+	assert.Equal(t, 27, n)
+	assert.False(t, done)
+	assert.Equal(t, "lane-loves-go", headers["set-person"])
+	n, done, err = headers.Parse(data[50:])
+	assert.Equal(t, 29, n)
+	assert.False(t, done)
+	assert.Equal(t, "lane-loves-go,prime-loves-zig", headers["set-person"])	
 }
