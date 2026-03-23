@@ -91,5 +91,5 @@ func TestParse(t *testing.T) {
 	n, done, err = headers.Parse(data[50:])
 	assert.Equal(t, 29, n)
 	assert.False(t, done)
-	assert.Equal(t, "lane-loves-go,prime-loves-zig", headers["set-person"])	
+	assert.Equal(t, "lane-loves-go, prime-loves-zig", headers["set-person"])	
 }

@@ -49,7 +49,7 @@ func (h Headers) Parse(data []byte) (n int, done bool, err error) {
 
 	val, ok := h[keyString]
 	if ok {
-		value = val + "," + value
+		value = val + ", " + value
 	}
 	h[keyString] = value
 	fmt.Printf("Current value for %s is: %s\n", keyString, value)
