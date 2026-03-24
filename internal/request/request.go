@@ -22,6 +22,10 @@ func (r Request) String() string {
 	complete += fmt.Sprintf("- Method: %s\n", r.RequestLine.Method)
 	complete += fmt.Sprintf("- Target: %s\n", r.RequestLine.RequestTarget)
 	complete += fmt.Sprintf("- Version: %s\n", r.RequestLine.HttpVersion)
+	complete += fmt.Sprintln("Headers:")
+	for key, value := range r.Headers{
+		complete += fmt.Sprintf("- %s: %s\n", key, value)
+	}
 	return complete
 
 }
