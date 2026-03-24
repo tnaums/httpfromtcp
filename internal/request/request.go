@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strconv"
 	"strings"
 
 	"github.com/tnaums/httpfromtcp/internal/headers"
@@ -13,6 +14,7 @@ import (
 type Request struct {
 	RequestLine RequestLine
 	Headers     headers.Headers
+	Body        []byte
 	state       requestState
 }
 
@@ -26,6 +28,8 @@ func (r Request) String() string {
 	for key, value := range r.Headers{
 		complete += fmt.Sprintf("- %s: %s\n", key, value)
 	}
+	complete += fmt.Sprintln("Body:")
+	complete += fmt.Sprintf("%s", r.Body)
 	return complete
 
 }
@@ -41,6 +45,7 @@ type requestState int
 const (
 	requestStateInitialized requestState = iota
 	requestStateParsingHeaders
+	requestStateParsingBody
 	requestStateDone
 )
 
@@ -52,6 +57,7 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 	readToIndex := 0
 	req := &Request{
 		state: requestStateInitialized,
+		Body: []byte{},
 		Headers: headers.NewHeaders(),
 	}
 	for req.state != requestStateDone {
@@ -73,7 +79,7 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 		}
 		readToIndex += numBytesRead
 
-		fmt.Printf("read: %s\n", buf[:readToIndex])
+		//fmt.Printf("read: %s\n", buf[:readToIndex])
 		numBytesParsed, err := req.parse(buf[:readToIndex])
 		if err != nil {
 			return nil, err
@@ -92,7 +98,7 @@ func parseRequestLine(data []byte) (*RequestLine, int, error) {
 		return nil, 0, nil
 	}
 	requestLineText := string(data[:idx])
-	fmt.Printf("requestLineText: %s\n", requestLineText)
+	fmt.Printf("\nrequestLineText: %s\n", requestLineText)
 	requestLine, err := requestLineFromString(requestLineText)
 	if err != nil {
 		return nil, 0, err
@@ -172,9 +178,29 @@ func (r *Request) parseSingle(data []byte) (int, error) {
 			return 0, err
 		}
 		if done {
-			r.state = requestStateDone
+			r.state = requestStateParsingBody
+			return n, nil
 		}
 		return n, nil
+	case requestStateParsingBody:
+		bodyLengthString := r.Headers.Get("content-length")
+
+		if bodyLengthString == "" {
+			r.state = requestStateDone
+			return 0, nil
+		}
+		bodyLengthInt, _ := strconv.Atoi(bodyLengthString)
+		fmt.Printf("body data: %s\n", data)
+
+		r.Body = append(r.Body, data...)
+		if len(r.Body) > bodyLengthInt {
+			return 0, fmt.Errorf("error: body longer than expected")
+		}
+		if len(r.Body) == bodyLengthInt {
+			fmt.Printf("body: %s\n", r.Body)
+			r.state = requestStateDone
+		}
+		return len(data), nil
 	case requestStateDone:
 		return 0, fmt.Errorf("error: trying to read data in a done state")
 	default:

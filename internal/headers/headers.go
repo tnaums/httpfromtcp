@@ -3,12 +3,18 @@ package headers
 import (
 	"bytes"
 	"fmt"
+	"strings"
 )
 
 type Headers map[string]string
 
 func NewHeaders() Headers {
 	return Headers{}
+}
+
+func (h Headers) Get(key string) string {
+	key = strings.ToLower(key)
+	return h[key]
 }
 
 const crlf = "\r\n"
@@ -18,7 +24,7 @@ func (h Headers) Parse(data []byte) (n int, done bool, err error) {
 	if bytes.HasPrefix(data, []byte(crlf)) {
 		return 2, true, nil
 	}
-	
+
 	// if in headers, see if complete line is present
 	idx := bytes.Index(data, []byte(crlf))
 	if idx == -1 {
@@ -44,23 +50,22 @@ func (h Headers) Parse(data []byte) (n int, done bool, err error) {
 			return 0, false, fmt.Errorf("invalid character in field name: %s", string(r))
 		}
 	}
-	
-	value := string(bytes.TrimSpace(data[idx + 1:n]))
+
+	value := string(bytes.TrimSpace(data[idx+1 : n]))
 
 	val, ok := h[keyString]
 	if ok {
 		value = val + ", " + value
 	}
 	h[keyString] = value
-	fmt.Printf("Current value for %s is: %s\n", keyString, value)
+	fmt.Printf("%s: %s\n", keyString, value)
 
 	return n, false, nil
 }
 
-
 func isInvalidChar(r rune) bool {
-    // return true if r is NOT in the allowed set
-    isLetter := (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z')
+	// return true if r is NOT in the allowed set
+	isLetter := (r >= 'a' && r <= 'z') || (r >= 'A' && r <= 'Z')
 	isDigit := r >= '0' && r <= '9'
 	isSetA := r == '!'
 	isSetB := r >= '#' && r <= '\''
@@ -68,5 +73,5 @@ func isInvalidChar(r rune) bool {
 	isSetD := r == '-' || r == '.'
 	isSetE := r >= '^' && r <= '`'
 	isSetF := r == '|' || r == '~'
-    return !isLetter && !isDigit && !isSetA && !isSetB && !isSetC && !isSetD && !isSetE && !isSetF
+	return !isLetter && !isDigit && !isSetA && !isSetB && !isSetC && !isSetD && !isSetE && !isSetF
 }
