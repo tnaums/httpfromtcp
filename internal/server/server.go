@@ -6,6 +6,7 @@ import (
 	"net"
 
 	"github.com/tnaums/httpfromtcp/internal/response"
+	"github.com/tnaums/httpfromtcp/internal/request"
 )
 
 type Server struct {
@@ -14,7 +15,7 @@ type Server struct {
 
 func runConnection(s *Server, conn io.ReadWriteCloser) {
 	headers := response.GetDefaultHeaders(0)
-	_ = response.WriteStatusLine(conn, 200)
+	_ = response.WriteStatusLine(conn, response.StatusOK)
 	_ = response.WriteHeaders(conn, headers)
 	//	conn.Write(out)
 	conn.Close()
@@ -33,7 +34,7 @@ func runServer(s *Server, listener net.Listener) {
 	}
 }
 
-func Serve(port uint16) (*Server, error) {
+func Serve(port uint16, handler Handler) (*Server, error) {
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		return nil, err
@@ -46,4 +47,11 @@ func Serve(port uint16) (*Server, error) {
 func (s *Server) Close() error {
 	s.closed = true
 	return nil
+}
+
+type Handler func(w io.Writer, req *request.Request) *HandlerError 
+
+type HandlerError struct {
+	StatusCode int
+	Message string
 }

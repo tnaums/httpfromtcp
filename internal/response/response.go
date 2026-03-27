@@ -9,9 +9,6 @@ import (
 
 type StatusCode int
 
-//type Response struct {
-//}
-
 const (
 	StatusOK                  StatusCode = 200
 	StatusBadRequest          StatusCode = 400
