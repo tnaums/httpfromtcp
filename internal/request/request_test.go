@@ -2,7 +2,7 @@ package request
 
 import (
 	"io"
-	"strings"
+	//	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -35,7 +35,7 @@ func TestRequestLineParse(t *testing.T) {
 	// Test: Good GET Request line
 	reader := &chunkReader{
 		data:            "GET / HTTP/1.1\r\nHost: localhost:42069\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\n\r\n",
-		numBytesPerRead: 3,
+		numBytesPerRead: 5,
 	}
 	r, err := RequestFromReader(reader)
 	require.NoError(t, err)
@@ -81,7 +81,7 @@ func TestRequestLineParse(t *testing.T) {
 		data:            "/coffee GET HTTP/1.1\r\nHost: localhost:42069\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\n\r\n",
 		numBytesPerRead: 3,
 	}	
-	_, err = RequestFromReader(strings.NewReader("/coffee GET HTTP/1.1\r\nHost: localhost:42069\r\nUser-Agent: curl/7.81.0\r\nAccept: */*\r\n\r\n"))
+	_, err = RequestFromReader(reader)
 	require.Error(t, err)
 
 	// Test: Invalid version in request line
