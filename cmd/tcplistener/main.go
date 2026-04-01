@@ -7,6 +7,8 @@ import (
 	"log"
 	"net"
 	"strings"
+
+	"github.com/tnaums/httpfromtcp/internal/request"
 )
 
 const port = 42069
@@ -26,10 +28,10 @@ func main() {
 			continue
 		}
 		fmt.Println("Accepted connection from", conn.RemoteAddr())
-		linesChan := getLinesChannel(conn)
-		for line := range linesChan {
-			fmt.Printf("%s\n", line)
-		}
+		//linesChan := getLinesChannel(conn)
+		r, _ := request.RequestFromReader(conn)
+		
+		fmt.Printf("%s\n", r)
 		fmt.Println("Connection to ", conn.RemoteAddr(), "closed")
 	}
 }

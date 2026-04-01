@@ -26,6 +26,14 @@ type RequestLine struct {
 	Method        string
 }
 
+func (r Request) String() string{
+	s := "Request line:\n"
+	s += fmt.Sprintf("- Method: %s\n", r.RequestLine.Method)
+	s += fmt.Sprintf("- Target: %s\n", r.RequestLine.RequestTarget)
+	s += fmt.Sprintf("- Version: %s\n", r.RequestLine.HttpVersion)
+	return s
+}
+
 const crlf = "\r\n"
 const bufferSize = 8
 
@@ -51,20 +59,16 @@ func RequestFromReader(reader io.Reader) (*Request, error) {
 			return nil, err
 		}
 		readToIndex += numBytesRead
-		fmt.Printf("numBytesRead: %d\n", numBytesRead)
-		fmt.Printf("buf: %s\n", buf)
-		fmt.Println(buf)
-		fmt.Printf("readToIndex: %d\n", readToIndex)
 
 		numBytesParsed, err := req.parse(buf[:readToIndex])
 		if err != nil {
 			return nil, err
 		}
-		fmt.Printf("numBytesParsed: %d\n\n", numBytesParsed)
+
 		copy(buf, buf[numBytesParsed:])
 		readToIndex -= numBytesParsed
 	}
-	fmt.Printf("%#v\n", req)
+
 	return req, nil
 }
 
@@ -118,13 +122,11 @@ func requestLineFromString(str string) (*RequestLine, error) {
 }
 
 func (r *Request) parse(data []byte) (int, error) {
-	fmt.Println("---parse method---")
+
 	switch r.state {
 	case requestStateInitialized:
 		requestLine, n, err := parseRequestLine(data)
-		fmt.Printf("requestLine: %#v\n", requestLine)
-		fmt.Printf("n: %d\n", n)
-		fmt.Printf("err: %v\n\n", err)
+
 		if err != nil {
 			// something actually went wrong
 			return 0, err
