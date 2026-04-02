@@ -1,5 +1,12 @@
 package server
 
+import (
+	"fmt"
+	"log"
+	"net"
+	"sync/atomic"
+)
+
 type Server struct {
 	closed   atomic.Bool
 	listener net.Listener
@@ -17,8 +24,32 @@ func Serve(port int) (*Server, error) {
 	return s, nil
 }
 
-func (s *Server) Close() error {}
+func (s *Server) Close() error {
+	s.closed.Store(true)
+	if s.listener != nil {
+		return s.listener.Close()
+	}
+	return nil
+}
 
-func (s *Server) listen() {}
+func (s *Server) listen() {
+	conn, err := s.listener.Accept()
+	if err != nil {
+		if s.closed.Load() {
+			return
+		}
+		log.Printf("Error accepting connections: %v", err)
+	}
+	go s.handle(conn)
+}
 
-func (s *Server) handle(conn net.Conn) {}
+func (s *Server) handle(conn net.Conn) {
+	defer conn.Close()
+	response := "HTTP/1.1 200 OK\r\n" + // Status line
+		"Content-Type: text/plain\r\n" + // Example header
+		"Content-Length: 13\r\n" + // Content length header
+		"\r\n" + // Blank line to separate headers from the body
+		"Hello World!\n" // Body
+	conn.Write([]byte(response))
+	return
+}
