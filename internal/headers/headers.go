@@ -49,6 +49,12 @@ func (h Headers) Set(key, value string) {
 	h[key] = value
 }
 
+func (h Headers) Get(key string) (string, bool) {
+	key = strings.ToLower(key)
+	v, ok := h[key]
+	return v, ok
+}
+
 // validTokens checks if the data contains only valid tokens
 // or characters that are allowed in a token
 func validTokens(data []byte) bool {
