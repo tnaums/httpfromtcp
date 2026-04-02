@@ -35,6 +35,10 @@ func (r Request) String() string {
 	s += fmt.Sprintf("- Method: %s\n", r.RequestLine.Method)
 	s += fmt.Sprintf("- Target: %s\n", r.RequestLine.RequestTarget)
 	s += fmt.Sprintf("- Version: %s\n", r.RequestLine.HttpVersion)
+	s += "Headers:\n"
+	for k, v := range r.Headers {
+		s += fmt.Sprintf("- %s: %s\n", k, v)
+	}
 	return s
 }
 
