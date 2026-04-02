@@ -44,7 +44,7 @@ func (r Request) String() string {
 		s += fmt.Sprintf("- %s: %s\n", k, v)
 	}
 	s += "Body:\n"
-	s += fmt.Sprintf("- %v\n", r.Body)
+	s += fmt.Sprintf("- %v\n", string(r.Body))
 	return s
 }
 
