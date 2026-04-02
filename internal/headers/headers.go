@@ -42,6 +42,10 @@ func (h Headers) Parse(data []byte) (int, bool, error) {
 var tokenChars = []byte{'!', '#', '$', '%', '&', '\'', '*', '+', '-', '.', '^', '_', '`', '|', '~'}
 
 func (h Headers) Set(key, value string) {
+	v, ok := h[key]
+	if ok {
+		value = fmt.Sprintf("%s, %s", v, value)
+	}
 	h[key] = value
 }
 
