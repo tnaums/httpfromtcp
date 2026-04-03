@@ -1,25 +1,45 @@
 package server
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"log"
 	"net"
 	"sync/atomic"
 
+	"github.com/tnaums/httpfromtcp/internal/request"
 	"github.com/tnaums/httpfromtcp/internal/response"
 )
 
 type Server struct {
 	closed   atomic.Bool
 	listener net.Listener
+	handler  Handler
 }
 
-func Serve(port int) (*Server, error) {
+type Handler func(w io.Writer, req *request.Request) *HandlerError
+
+type HandlerError struct {
+	StatusCode response.StatusCode
+	Message    string
+}
+
+func (he HandlerError) Write(w io.Writer) {
+	response.WriteStatusLine(w, he.StatusCode)
+	messageBytes := []byte(he.Message)
+	headers := response.GetDefaultHeaders(len(messageBytes))
+	response.WriteHeaders(w, headers)
+	w.Write(messageBytes)
+}
+
+func Serve(port int, handler Handler) (*Server, error) {
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		return nil, err
 	}
 	s := &Server{
+		handler:  handler,
 		listener: listener,
 	}
 	go s.listen()
@@ -35,21 +55,39 @@ func (s *Server) Close() error {
 }
 
 func (s *Server) listen() {
-	conn, err := s.listener.Accept()
-	if err != nil {
-		if s.closed.Load() {
-			return
+	for {
+		conn, err := s.listener.Accept()
+		if err != nil {
+			if s.closed.Load() {
+				return
+			}
+			log.Printf("Error accepting connections: %v", err)
 		}
-		log.Printf("Error accepting connections: %v", err)
+		go s.handle(conn)
 	}
-	go s.handle(conn)
 }
 
 func (s *Server) handle(conn net.Conn) {
 	defer conn.Close()
-	response.WriteStatusLine(conn, response.StatusCodeSuccess)
-	headers := response.GetDefaultHeaders(0)
-	if err := response.WriteHeaders(conn, headers); err != nil {
-		fmt.Printf("error: %v\n", err)
+	req, err := request.RequestFromReader(conn)
+	if err != nil {
+		hErr := &HandlerError{
+			StatusCode: response.StatusCodeBadRequest,
+			Message:    err.Error(),
+		}
+		hErr.Write(conn)
+		return
 	}
+	buf := bytes.NewBuffer([]byte{}) // io.Writer
+	hErr := s.handler(buf, req)
+	if hErr != nil {
+		hErr.Write(conn)
+		return
+	}
+	b := buf.Bytes() // unread portion of buffer; body
+	response.WriteStatusLine(conn, response.StatusCodeSuccess)
+	headers := response.GetDefaultHeaders(len(b))
+	response.WriteHeaders(conn, headers)
+	conn.Write(b)
+	return
 }
