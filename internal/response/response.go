@@ -2,7 +2,6 @@ package response
 
 import (
 	"fmt"
-	"io"
 
 	"github.com/tnaums/httpfromtcp/internal/headers"
 )
@@ -15,10 +14,6 @@ const (
 	StatusCodeInternalServerError StatusCode = 500
 )
 
-func WriteStatusLine(w io.Writer, statusCode StatusCode) error {
-	_, err := w.Write(getStatusLine(statusCode))
-	return err
-}
 
 func getStatusLine(statusCode StatusCode) []byte {
 	reasonPhrase := ""
@@ -41,13 +36,3 @@ func GetDefaultHeaders(contentLen int) headers.Headers {
 	return h
 }
 
-func WriteHeaders(w io.Writer, headers headers.Headers) error {
-	for k, v := range headers {
-		_, err := w.Write([]byte(fmt.Sprintf("%s: %s\r\n", k, v)))
-		if err != nil {
-			return err
-		}
-	}
-	_, err := w.Write([]byte("\r\n"))
-	return err
-}
